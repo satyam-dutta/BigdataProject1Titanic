@@ -1,0 +1,60 @@
+--Flume Config File setup
+
+agent1.sources = mysrc
+agent1.sinks = hdfsdest
+agent1.channels = mychannel
+
+agent1.sources.mysrc.type = exec
+agent1.sources.mysrc.command = hadoop dfs -put /home/acadgild/Desktop/Assignment/Titanic_dataset.txt 
+
+agent1.sinks.hdfsdest.type = hdfs
+agent1.sinks.hdfsdest.hdfs.path = hdfs://localhost:9000/Titanic_dataset
+
+agent1.channels.mychannel.type = memory
+
+agent1.sources.mysrc.channels = mychannel
+agent1.sinks.hdfsdest.channel = mychannel
+
+bin/flume-ng agent --conf conf --conf-file proj1-2.conf --name agent1 -Dflume.root.logger=INFO,console
+
+
+--Titanic = load '/home/acadgild/Desktop/Assignment/Titanic_dataset.txt' using PigStorage(',') as (PassengerID: chararray,Survived: chararray,
+Pclass:chararray,Name:chararray,Sex:chararray,Age:chararray,Sibsp:chararray,Parch:chararray,Ticket:chararray,Fare:chararray,Cabin:chararray,Embarked:chararray);
+--
+
+Titanic = load '/user/acadgild//Titanic_dataset.txt' using PigStorage(',') as (PassengerID: chararray,Survived: chararray,
+Pclass:chararray,Name:chararray,Sex:chararray,Age:chararray,Sibsp:chararray,Parch:chararray,Ticket:chararray,Fare:chararray,Cabin:chararray,Embarked:chararray);
+
+
+--1. Average fare of each class
+
+grp_Class = GROUP Titanic by Pclass;
+Avg_Fare = foreach grp_Class generate group, AVG(Titanic.Fare);---need to see implicit class to conver to Number
+
+
+--2.Number of People in each class who survived and embarked in SouthHampton
+
+Survived = FILTER Titanic by Survived == '0';
+Survived_Embarked = FILTER Survived by Embarked == 'S';
+grp_Sur_Emb = GROUP Survived_Embarked by Pclass;
+cnt_grp_Sur_Emb = FOREACH grp_Sur_Emb generate group,COUNT(Survived_Embarked.PassengerID);
+
+
+--3. Number of male and female who died in each class
+
+Died = FILTER Titanic by Survived == '1';
+Male = FILTER Died by Sex == 'male';
+Female = FILTER Titanic by Sex == 'female';
+
+grp_Male_Class = GROUP Male by Pclass;
+grp_Female_Class = GROUP Female by Pclass;
+
+cnt_grp_Male_Class = FOREACH grp_Male_Class generate group, COUNT(Male.PassengerID);
+cnt_grp_Female_Class = FOREACH grp_Female_Class generate group, COUNT(Female.PassengerID);
+
+
+
+
+
+
+
